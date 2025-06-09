@@ -12,9 +12,9 @@ app = FastAPI()
 model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
 
-POSTS = load_posts()
-post_ids = list(POSTS.keys())
-post_texts = list(POSTS.values())
+posts = load_posts()
+post_ids = list(posts.keys())
+post_texts = list(posts.values())
 
 
 embeddings = model.encode(
@@ -26,6 +26,11 @@ embeddings = model.encode(
 
 index = faiss.IndexFlatIP(embeddings.shape[1])
 index.add(embeddings)
+
+
+@app.on_event("startup")
+def startup_event():
+    print(f"Loaded {len(posts)} posts into FAISS index.")
 
 
 # Запрос
@@ -46,3 +51,23 @@ def recommend_posts(request: RecommendRequest):
         results.append({"post_id": post_id, "score": round(float(score), 3)})
 
     return {"recommended": results}
+
+
+@app.post("/reindex")
+def reindex_posts():
+    global index, posts
+
+    # Загрузить актуальные посты
+    posts = load_posts()
+
+    # Получить эмбеддинги
+    embeddings = model.encode(list(posts.values()), convert_to_numpy=True)
+
+    # Перестроить индекс
+    index.reset()
+    index.add(embeddings)
+
+    return {
+        "status": "success",
+        "message": f"Reindexed {len(posts)} posts"
+    }
