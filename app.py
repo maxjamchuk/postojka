@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 import faiss
-import numpy as np
-
+from config import settings
+import psycopg2
 
 app = FastAPI()
 
@@ -12,28 +12,37 @@ app = FastAPI()
 model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
 
-# Заглушка: посты
-POSTS = {
-    1: "Сегодня гулял в парке и слушал музыку — очень расслабляет.",
-    2: "Посмотрел новый фильм, очень рекомендую!",
-    3: "Обожаю видеоигры, особенно стратегические.",
-    4: "Съездил в горы, природа невероятная!",
-    5: "Новая книга по психологии дала много инсайтов.",
-}
+def get_posts_from_db():
+    conn = psycopg2.connect(
+        dbname=settings.db_name,
+        user=settings.db_user,
+        password=settings.db_password,
+        host=settings.db_host,
+        port=settings.db_port
+    )
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT id, content FROM posts_post WHERE content IS NOT NULL LIMIT {settings.post_limit}"
+    )
+    result = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return {row[0]: row[1] for row in result}
 
 
-# Храним id и текст
+POSTS = get_posts_from_db()
 post_ids = list(POSTS.keys())
 post_texts = list(POSTS.values())
 
 
-# Эмбеддинги
-embeddings = model.encode(post_texts, convert_to_numpy=True, normalize_embeddings=True).astype("float32")
+embeddings = model.encode(
+    post_texts,
+    convert_to_numpy=True,
+    normalize_embeddings=True
+).astype("float32")
 
 
-# FAISS: строим индекс
-dimension = embeddings.shape[1]
-index = faiss.IndexFlatIP(dimension)
+index = faiss.IndexFlatIP(embeddings.shape[1])
 index.add(embeddings)
 
 
