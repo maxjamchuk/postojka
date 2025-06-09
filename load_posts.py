@@ -12,12 +12,19 @@ def get_posts_from_db():
         port=settings.db_port
     )
     cursor = conn.cursor()
-    cursor.execute(
-        f"SELECT id, content FROM posts_post WHERE content IS NOT NULL LIMIT {settings.post_limit}"
-    )
+
+    query = f"""
+        SELECT {settings.post_id_column} AS id, {settings.post_content_column} AS content
+        FROM {settings.post_table_name}
+        WHERE {settings.post_content_column} IS NOT NULL
+        LIMIT {settings.post_limit}
+    """
+
+    cursor.execute(query)
     result = cursor.fetchall()
     cursor.close()
     conn.close()
+
     return {row[0]: row[1] for row in result}
 
 
