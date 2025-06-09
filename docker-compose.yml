@@ -1,0 +1,8 @@
+services:
+  postojka:
+    build:
+      context: .
+    container_name: postojka
+    ports:
+      - "8002:8000"
+    restart: always
