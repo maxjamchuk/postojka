@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 import faiss
-from config import settings
+from load_posts import load_posts
 import psycopg2
 
 app = FastAPI()
@@ -12,25 +12,7 @@ app = FastAPI()
 model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
 
-def get_posts_from_db():
-    conn = psycopg2.connect(
-        dbname=settings.db_name,
-        user=settings.db_user,
-        password=settings.db_password,
-        host=settings.db_host,
-        port=settings.db_port
-    )
-    cursor = conn.cursor()
-    cursor.execute(
-        f"SELECT id, content FROM posts_post WHERE content IS NOT NULL LIMIT {settings.post_limit}"
-    )
-    result = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return {row[0]: row[1] for row in result}
-
-
-POSTS = get_posts_from_db()
+POSTS = load_posts()
 post_ids = list(POSTS.keys())
 post_texts = list(POSTS.values())
 

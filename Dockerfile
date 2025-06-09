@@ -23,7 +23,10 @@ WORKDIR /app
 
 # Копируем только установленное из builder-образа
 COPY --from=builder /install /usr/local
-COPY app.py .
+COPY app.py ./app.py
+COPY config.py ./config.py
+COPY load_posts.py ./load_posts.py
+COPY data/ ./data/
 
 EXPOSE 8000
 
