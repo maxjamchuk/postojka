@@ -54,20 +54,14 @@ def recommend_posts(request: RecommendRequest):
 
 
 @app.post("/reindex")
-def reindex_posts():
-    global index, posts
-
-    # Загрузить актуальные посты
+def reindex():
+    global index, post_ids
     posts = load_posts()
+    post_ids = list(posts.keys())
+    texts = list(posts.values())
 
-    # Получить эмбеддинги
-    embeddings = model.encode(list(posts.values()), convert_to_numpy=True)
-
-    # Перестроить индекс
-    index.reset()
+    embeddings = model.encode(texts, convert_to_numpy=True)
+    index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
 
-    return {
-        "status": "success",
-        "message": f"Reindexed {len(posts)} posts"
-    }
+    return {"message": f"Reindexed {len(posts)} posts."}
