@@ -1,14 +1,28 @@
-FROM python:3.10-slim
+# =============================
+# 🏗️ STAGE 1: builder
+# =============================
+FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
 COPY requirements.txt .
 
-# Указываем доп. индекс при установке torch
-RUN pip install --no-cache-dir \
-    -r requirements.txt \
-    --extra-index-url https://download.pytorch.org/whl/cpu
+# Установка зависимостей в отдельный путь
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+        --prefix=/install \
+        --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r requirements.txt
 
+# =============================
+# 🏁 STAGE 2: runtime
+# =============================
+FROM python:3.10-slim AS runtime
+
+WORKDIR /app
+
+# Копируем только установленное из builder-образа
+COPY --from=builder /install /usr/local
 COPY app.py .
 
 EXPOSE 8000
